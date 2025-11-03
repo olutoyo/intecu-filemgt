@@ -1,6 +1,4 @@
 import { useCallback, useState } from "react";
-import { ref, uploadBytes } from "firebase/storage";
-import { storage } from "@/lib/firebase";
 import { Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
@@ -60,21 +58,12 @@ export const FileUploadZone = ({ onFilesUploaded }: FileUploadZoneProps) => {
     }
 
     setIsUploading(true);
-    try {
-      const uploadPromises = uploadedFiles.map(async (file) => {
-        const storageRef = ref(storage, `files/${file.name}`);
-        await uploadBytes(storageRef, file);
-      });
-
-      await Promise.all(uploadPromises);
+    // Simulate file upload
+    setTimeout(() => {
       setUploadedFiles([]);
-      onFilesUploaded();
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload files");
-    } finally {
       setIsUploading(false);
-    }
+      onFilesUploaded();
+    }, 1500);
   };
 
   return (

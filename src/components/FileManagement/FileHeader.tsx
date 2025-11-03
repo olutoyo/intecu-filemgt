@@ -2,8 +2,6 @@ import { Search, Grid3x3, List, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
 import { toast } from "sonner";
 import {
   DropdownMenu,
@@ -31,15 +29,10 @@ export const FileHeader = ({
   const navigate = useNavigate();
   const userEmail = localStorage.getItem("userEmail") || "user@example.com";
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      toast.success("Logged out successfully");
-      navigate("/auth");
-    } catch (error) {
-      console.error("Logout error:", error);
-      toast.error("Failed to log out");
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("userEmail");
+    toast.success("Logged out successfully");
+    navigate("/auth");
   };
 
   return (
