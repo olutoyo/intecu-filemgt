@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileSidebar } from "@/components/FileManagement/FileSidebar";
 import { FileHeader } from "@/components/FileManagement/FileHeader";
 import { FileCard, FileItem } from "@/components/FileManagement/FileCard";
 import { FileList } from "@/components/FileManagement/FileList";
 import { FileUploadZone } from "@/components/FileManagement/FileUploadZone";
 import { Button } from "@/components/ui/button";
-import { Download, Upload, Loader2 } from "lucide-react";
+import { Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -15,26 +15,33 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-
-// Mock data
-const mockFiles: FileItem[] = [
-  { id: "1", name: "Project Proposal.docx", type: "document", size: "2.4 MB", modified: "2 hours ago", starred: true },
-  { id: "2", name: "Design Mockups.fig", type: "image", size: "15.8 MB", modified: "1 day ago" },
-  { id: "3", name: "Presentation.pptx", type: "document", size: "8.2 MB", modified: "3 days ago" },
-  { id: "4", name: "Budget Report.xlsx", type: "document", size: "1.1 MB", modified: "1 week ago", starred: true },
-  { id: "5", name: "Team Photo.jpg", type: "image", size: "4.5 MB", modified: "2 weeks ago" },
-  { id: "6", name: "Product Demo.mp4", type: "video", size: "45.3 MB", modified: "3 weeks ago" },
-  { id: "7", name: "Archive.zip", type: "archive", size: "120 MB", modified: "1 month ago" },
-  { id: "8", name: "Meeting Recording.mp3", type: "audio", size: "12.7 MB", modified: "1 month ago" },
-];
+import { getAllFiles, downloadFile } from "@/lib/fileStorage";
 
 const Files = () => {
   const [selectedFolder, setSelectedFolder] = useState("home");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
-  const [files, setFiles] = useState<FileItem[]>(mockFiles);
+  const [files, setFiles] = useState<FileItem[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadFiles();
+  }, []);
+
+  const loadFiles = async () => {
+    try {
+      setIsLoading(true);
+      const storedFiles = await getAllFiles();
+      setFiles(storedFiles);
+    } catch (error) {
+      console.error("Failed to load files:", error);
+      toast.error("Failed to load files");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFileSelect = (id: string) => {
     setSelectedFiles((prev) =>
@@ -42,21 +49,36 @@ const Files = () => {
     );
   };
 
-  const handleDownload = (file: FileItem) => {
-    toast.success(`Downloading ${file.name}...`);
+  const handleDownload = async (file: FileItem) => {
+    try {
+      await downloadFile(file.id);
+      toast.success(`Downloaded ${file.name}`);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download file");
+    }
   };
 
-  const handleBulkDownload = () => {
+  const handleBulkDownload = async () => {
     if (selectedFiles.length === 0) {
       toast.error("Please select files to download");
       return;
     }
-    toast.success(`Downloading ${selectedFiles.length} file(s)...`);
+    
+    try {
+      for (const fileId of selectedFiles) {
+        await downloadFile(fileId);
+      }
+      toast.success(`Downloaded ${selectedFiles.length} file(s)`);
+    } catch (error) {
+      console.error("Bulk download error:", error);
+      toast.error("Failed to download some files");
+    }
   };
 
-  const handleFilesUploaded = () => {
+  const handleFilesUploaded = async () => {
     setIsUploadOpen(false);
-    toast.success("Files uploaded successfully");
+    await loadFiles();
   };
 
   const filteredFiles = files.filter((file) =>
@@ -114,7 +136,11 @@ const Files = () => {
             </div>
           </div>
 
-          {filteredFiles.length === 0 ? (
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
+              <p className="text-lg">Loading files...</p>
+            </div>
+          ) : filteredFiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
               <p className="text-lg">No files found</p>
               <p className="text-sm">Upload files to get started</p>

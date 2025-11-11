@@ -58,12 +58,23 @@ export const FileUploadZone = ({ onFilesUploaded }: FileUploadZoneProps) => {
     }
 
     setIsUploading(true);
-    // Simulate file upload
-    setTimeout(() => {
+    
+    try {
+      const { saveFile } = await import("@/lib/fileStorage");
+      
+      for (const file of uploadedFiles) {
+        await saveFile(file);
+      }
+      
+      toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);
       setUploadedFiles([]);
-      setIsUploading(false);
       onFilesUploaded();
-    }, 1500);
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Failed to upload files");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
