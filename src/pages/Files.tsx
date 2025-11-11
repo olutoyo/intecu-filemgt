@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { FileSidebar } from "@/components/FileManagement/FileSidebar";
 import { FileHeader } from "@/components/FileManagement/FileHeader";
 import { FileCard, FileItem } from "@/components/FileManagement/FileCard";
@@ -36,14 +35,6 @@ const Files = () => {
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [files, setFiles] = useState<FileItem[]>(mockFiles);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const userEmail = localStorage.getItem("userEmail");
-    if (!userEmail) {
-      navigate("/auth");
-    }
-  }, [navigate]);
 
   const handleFileSelect = (id: string) => {
     setSelectedFiles((prev) =>
