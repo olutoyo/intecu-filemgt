@@ -7,9 +7,10 @@ import { toast } from "sonner";
 
 interface FileUploadZoneProps {
   onFilesUploaded: () => void;
+  currentFolderId: string;
 }
 
-export const FileUploadZone = ({ onFilesUploaded }: FileUploadZoneProps) => {
+export const FileUploadZone = ({ onFilesUploaded, currentFolderId }: FileUploadZoneProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -63,7 +64,7 @@ export const FileUploadZone = ({ onFilesUploaded }: FileUploadZoneProps) => {
       const { saveFile } = await import("@/lib/fileStorage");
       
       for (const file of uploadedFiles) {
-        await saveFile(file);
+        await saveFile(file, currentFolderId);
       }
       
       toast.success(`${uploadedFiles.length} file(s) uploaded successfully`);

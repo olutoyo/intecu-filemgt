@@ -16,30 +16,54 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { getAllFiles, downloadFile } from "@/lib/fileStorage";
+import { getAllFolders } from "@/lib/folderStorage";
 
 const Files = () => {
-  const [selectedFolder, setSelectedFolder] = useState("home");
+  const [selectedFolder, setSelectedFolder] = useState("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [folderName, setFolderName] = useState("All Files");
 
   useEffect(() => {
     loadFiles();
-  }, []);
+    loadFolderName();
+  }, [selectedFolder]);
 
   const loadFiles = async () => {
     try {
       setIsLoading(true);
-      const storedFiles = await getAllFiles();
+      const storedFiles = await getAllFiles(selectedFolder);
       setFiles(storedFiles);
     } catch (error) {
       console.error("Failed to load files:", error);
       toast.error("Failed to load files");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadFolderName = async () => {
+    const defaultNames: Record<string, string> = {
+      all: "All Files",
+      recent: "Recent",
+      starred: "Starred",
+    };
+
+    if (defaultNames[selectedFolder]) {
+      setFolderName(defaultNames[selectedFolder]);
+    } else {
+      try {
+        const folders = await getAllFolders();
+        const folder = folders.find(f => f.id === selectedFolder);
+        setFolderName(folder?.name || "Unknown Folder");
+      } catch (error) {
+        console.error("Failed to load folder name:", error);
+        setFolderName("Folder");
+      }
     }
   };
 
@@ -100,9 +124,7 @@ const Files = () => {
         <main className="flex-1 p-6 space-y-6 overflow-y-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold">
-                {selectedFolder.charAt(0).toUpperCase() + selectedFolder.slice(1)}
-              </h2>
+              <h2 className="text-2xl font-bold">{folderName}</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 {filteredFiles.length} files
               </p>
@@ -123,15 +145,18 @@ const Files = () => {
                     Upload Files
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Upload Files</DialogTitle>
-                    <DialogDescription>
-                      Drag and drop files or click to browse
-                    </DialogDescription>
-                  </DialogHeader>
-                  <FileUploadZone onFilesUploaded={handleFilesUploaded} />
-                </DialogContent>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Upload Files</DialogTitle>
+                      <DialogDescription>
+                        Drag and drop files or click to browse
+                      </DialogDescription>
+                    </DialogHeader>
+                    <FileUploadZone 
+                      onFilesUploaded={handleFilesUploaded}
+                      currentFolderId={selectedFolder}
+                    />
+                  </DialogContent>
               </Dialog>
             </div>
           </div>

@@ -2,7 +2,14 @@ import { FileItem } from "@/components/FileManagement/FileCard";
 
 const DB_NAME = "INTECU_FileStorage";
 const STORE_NAME = "files";
-const DB_VERSION = 1;
+const FOLDERS_STORE = "folders";
+const DB_VERSION = 2;
+
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string;
+}
 
 interface StoredFile {
   id: string;
@@ -10,6 +17,7 @@ interface StoredFile {
   type: string;
   size: number;
   dateModified: string;
+  folderId: string;
   blob: Blob;
 }
 
@@ -54,11 +62,14 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: "id" });
       }
+      if (!db.objectStoreNames.contains(FOLDERS_STORE)) {
+        db.createObjectStore(FOLDERS_STORE, { keyPath: "id" });
+      }
     };
   });
 }
 
-export async function saveFile(file: File): Promise<FileItem> {
+export async function saveFile(file: File, folderId: string = "all"): Promise<FileItem> {
   const db = await openDB();
   const id = `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const dateModified = new Date().toISOString();
@@ -69,6 +80,7 @@ export async function saveFile(file: File): Promise<FileItem> {
     type: file.type || "application/octet-stream",
     size: file.size,
     dateModified,
+    folderId,
     blob: file,
   };
 
@@ -91,7 +103,7 @@ export async function saveFile(file: File): Promise<FileItem> {
   });
 }
 
-export async function getAllFiles(): Promise<FileItem[]> {
+export async function getAllFiles(folderId?: string): Promise<FileItem[]> {
   const db = await openDB();
 
   return new Promise((resolve, reject) => {
@@ -100,7 +112,14 @@ export async function getAllFiles(): Promise<FileItem[]> {
     const request = store.getAll();
 
     request.onsuccess = () => {
-      const files = request.result.map((storedFile: StoredFile) => {
+      let files = request.result as StoredFile[];
+      
+      // Filter by folder if specified
+      if (folderId && folderId !== "all") {
+        files = files.filter((f: StoredFile) => f.folderId === folderId);
+      }
+      
+      const fileItems = files.map((storedFile: StoredFile) => {
         const fileItem: FileItem = {
           id: storedFile.id,
           name: storedFile.name,
@@ -110,7 +129,7 @@ export async function getAllFiles(): Promise<FileItem[]> {
         };
         return fileItem;
       });
-      resolve(files);
+      resolve(fileItems);
     };
     request.onerror = () => reject(request.error);
   });
